@@ -15,7 +15,7 @@ $port = getenv('PORT') ?: 80;
 
 // Load admin list from JSON file
 $adminList = json_decode(file_get_contents('admins.json'), true) ?? [];
-$superAdmin = '@SAVANPATELSP';
+$superAdmins = ['@MujTaBaNext', '@SAVANPATELSP']; // Array with multiple super admins
 
 // Load language list from JSON file
 $languages = json_decode(file_get_contents('languages.json'), true) ?? [];
@@ -44,6 +44,7 @@ $translationModeKeyboard = new InlineKeyboardMarkup([
     [['text' => 'Manual', 'callback_data' => 'mode_manual']],
     [['text' => '❌ Back', 'callback_data' => 'back']]
 ]);
+
 function getPageKeyboard($page) {
     global $languages, $itemsPerPage;
     $start = $page * $itemsPerPage;
@@ -89,7 +90,8 @@ if (isset($update['message'])) {
         } elseif ($text === '/settings') {
             $bot->sendMessage($chatId, $settingsMessage, null, false, null, $settingsKeyboard);
         } elseif ($text === '/admin') {
-            if ($username === $superAdmin) {
+            // Check if the user is a super admin
+            if (in_array("@$username", $superAdmins)) {
                 $adminMessage = "List of admins:\n\n" . implode("\n\n", array_map(fn($admin) => str_replace('@@', '@', $admin), $adminList));
                 $bot->sendMessage($chatId, $adminMessage);
             } else {
@@ -104,7 +106,7 @@ if (isset($update['message'])) {
 
     // Adding admin functionality to add and remove
     if (preg_match('/^\/admin @(\w+)$/', $text, $matches)) {
-        if ($username === $superAdmin) {
+        if (in_array("@$username", $superAdmins)) {
             $newAdmin = '@' . $matches[1];
             if (!in_array($newAdmin, $adminList)) {
                 $adminList[] = $newAdmin;
@@ -117,7 +119,7 @@ if (isset($update['message'])) {
             $bot->sendMessage($chatId, "You don't have the right to use this command!");
         }
     } elseif (preg_match('/^\/unadmin @(\w+)$/', $text, $matches)) {
-        if ($username === $superAdmin) {
+        if (in_array("@$username", $superAdmins)) {
             $adminToRemove = '@' . $matches[1];
             if (($key = array_search($adminToRemove, $adminList)) !== false) {
                 unset($adminList[$key]);
