@@ -196,7 +196,6 @@ if (isset($update['callback_query'])) {
     } elseif ($callbackData === 'back') {
         $bot->sendMessage($callbackChatId, $settingsMessage, null, false, null, $settingsKeyboard);
     }
-}   
 elseif ($callbackData === 'apply') {
     $bot->editMessageText($callbackChatId, $callbackMessageId, "Done!");
 } elseif ($callbackData === 'cancel') {
@@ -212,7 +211,7 @@ elseif ($callbackData === 'apply') {
 } elseif ($callbackData === 'mode_manual') {
     $bot->sendMessage($callbackChatId, "Manual translation mode has been selected.");
 }
-
+}
 
 // New Logic for Forward-Only Translation Mode
 if (isset($update['message']['forward_from'])) {
