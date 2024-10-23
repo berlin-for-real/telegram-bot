@@ -1,4 +1,9 @@
 <?php
+if ($_SERVER['REQUEST_URI'] !== '/bot.php') {
+    require __DIR__ . '/bot.php';
+    exit;
+}
+
 require_once __DIR__ . '/vendor/autoload.php';
 
 
