@@ -6,22 +6,23 @@ if ($_SERVER['REQUEST_URI'] !== '/bot.php') {
 
 require_once __DIR__ . '/vendor/autoload.php';
 
-
 use TelegramBot\Api\BotApi;
 use TelegramBot\Api\Types\Inline\InlineKeyboardMarkup;
 
 $token = '7869277159:AAGRmc517KH-yKfCONui2KpNr6rQMMsyGUA';
 $bot = new BotApi($token);
 $port = getenv('PORT') ?: 80;
+
 // Load admin list from JSON file
 $adminList = json_decode(file_get_contents('admins.json'), true) ?? [];
+$superAdmin = '@MujtabaTheNext';
 
 // Load language list from JSON file
 $languages = json_decode(file_get_contents('languages.json'), true) ?? [];
 $itemsPerPage = 20;
 
 $startMessage = "Hello!\n\nThis bot will translate messages in your group. It supports 134 languages and has various modes.\n\nTo get started, add it to the group chat.";
-$startKeyboard = new InlineKeyboardMarkup([ 
+$startKeyboard = new InlineKeyboardMarkup([
     [['text' => ' Add to Group', 'url' => 'https://t.me/@TopTestGbot?startgroup=invite']]
 ]);
 $settingsMessage = "⚙️  Bot settings:";
@@ -30,11 +31,11 @@ $settingsKeyboard = new InlineKeyboardMarkup([
     [['text' => 'Change translation mode', 'callback_data' => 'change_translation_mode']]
 ]);
 
-$translationModeMessage = "Change translation mode\nHere you can customize when the bot will translate messages ✨\n\n" . 
+$translationModeMessage = "Change translation mode\nHere you can customize when the bot will translate messages ✨\n\n" .
     "Auto — translates all messages that require it\n" .
     "Forwards — translates only forwarded messages that require it\n" .
     "Linked channel — translates only posts from linked channel that require it.\n" .
-    "Manual — translates only by replying to a message with @TopTestGbot ! \n\n". 
+    "Manual — translates only by replying to a message with @TopTestGbot ! \n\n" .
     "THIS PART IS NOT DONE YET !";
 $translationModeKeyboard = new InlineKeyboardMarkup([
     [['text' => 'Auto', 'callback_data' => 'mode_auto']],
@@ -43,7 +44,6 @@ $translationModeKeyboard = new InlineKeyboardMarkup([
     [['text' => 'Manual', 'callback_data' => 'mode_manual']],
     [['text' => '❌ Back', 'callback_data' => 'back']]
 ]);
-
 function getPageKeyboard($page) {
     global $languages, $itemsPerPage;
     $start = $page * $itemsPerPage;
@@ -89,38 +89,49 @@ if (isset($update['message'])) {
         } elseif ($text === '/settings') {
             $bot->sendMessage($chatId, $settingsMessage, null, false, null, $settingsKeyboard);
         } elseif ($text === '/admin') {
-            $adminMessage = "List of admins:\n\n" . implode("\n\n", array_map(fn($admin) => str_replace('@@', '@', $admin), $adminList));
-            $bot->sendMessage($chatId, $adminMessage);
+            if ($username === $superAdmin) {
+                $adminMessage = "List of admins:\n\n" . implode("\n\n", array_map(fn($admin) => str_replace('@@', '@', $admin), $adminList));
+                $bot->sendMessage($chatId, $adminMessage);
+            } else {
+                $bot->sendMessage($chatId, "You don't have the right to use this command!");
+            }
         }
-
         // Reply to "set:language=..." with "Done!" to the original message
         elseif (strpos($text, 'set:language=') !== false) {
             $bot->sendMessage($chatId, "Done!", null, false, $update['message']['message_id']);
         }
     }
+
     // Adding admin functionality to add and remove
     if (preg_match('/^\/admin @(\w+)$/', $text, $matches)) {
-        $newAdmin = '@' . $matches[1];
-        if (!in_array($newAdmin, $adminList)) {
-            $adminList[] = $newAdmin;
-            file_put_contents('admins.json', json_encode($adminList)); // Save updated admin list
-            $bot->sendMessage($chatId, "$newAdmin has been added to the admin list.");
+        if ($username === $superAdmin) {
+            $newAdmin = '@' . $matches[1];
+            if (!in_array($newAdmin, $adminList)) {
+                $adminList[] = $newAdmin;
+                file_put_contents('admins.json', json_encode($adminList)); // Save updated admin list
+                $bot->sendMessage($chatId, "$newAdmin has been added to the admin list.");
+            } else {
+                $bot->sendMessage($chatId, "$newAdmin is already an admin.");
+            }
         } else {
-            $bot->sendMessage($chatId, "$newAdmin is already an admin.");
+            $bot->sendMessage($chatId, "You don't have the right to use this command!");
         }
     } elseif (preg_match('/^\/unadmin @(\w+)$/', $text, $matches)) {
-        $adminToRemove = '@' . $matches[1];
-        if (($key = array_search($adminToRemove, $adminList)) !== false) {
-            unset($adminList[$key]);
-            $adminList = array_values($adminList); // Reindex array
-            file_put_contents('admins.json', json_encode($adminList)); // Save updated admin list
-            $bot->sendMessage($chatId, "$adminToRemove has been removed from the admin list.");
+        if ($username === $superAdmin) {
+            $adminToRemove = '@' . $matches[1];
+            if (($key = array_search($adminToRemove, $adminList)) !== false) {
+                unset($adminList[$key]);
+                $adminList = array_values($adminList); // Reindex array
+                file_put_contents('admins.json', json_encode($adminList)); // Save updated admin list
+                $bot->sendMessage($chatId, "$adminToRemove has been removed from the admin list.");
+            } else {
+                $bot->sendMessage($chatId, "$adminToRemove is not in the admin list.");
+            }
         } else {
-            $bot->sendMessage($chatId, "$adminToRemove is not in the admin list.");
+            $bot->sendMessage($chatId, "You don't have the right to use this command!");
         }
     }
 }
-
 if (isset($update['callback_query'])) {
     $callbackData = $update['callback_query']['data'];
     $callbackChatId = $update['callback_query']['message']['chat']['id'];
