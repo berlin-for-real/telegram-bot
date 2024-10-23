@@ -15,7 +15,7 @@ $port = getenv('PORT') ?: 80;
 
 // Load admin list from JSON file
 $adminList = json_decode(file_get_contents('admins.json'), true) ?? [];
-$superAdmins = ['@MujtabaTheNext', '@SAVANPATELSP'];
+$superAdmin = ['@MujtabaTheNext', '@SAVANPATELSP'];
 
 // Load language list from JSON file
 $languages = json_decode(file_get_contents('languages.json'), true) ?? [];
