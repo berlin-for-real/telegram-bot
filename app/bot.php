@@ -13,9 +13,9 @@ $token = '7869277159:AAGRmc517KH-yKfCONui2KpNr6rQMMsyGUA';
 $bot = new BotApi($token);
 $port = getenv('PORT') ?: 80;
 
-// Load admin list from JSON file
+// Load admin and superadmin lists from JSON files
 $adminList = json_decode(file_get_contents('admins.json'), true) ?? [];
-$superAdmins = ['@MujTaBaNext', '@SAVANPATELSP']; // Array with multiple super admins
+$superAdmins = json_decode(file_get_contents('superAdmins.json'), true) ?? [];
 
 // Load language list from JSON file
 $languages = json_decode(file_get_contents('languages.json'), true) ?? [];
@@ -38,7 +38,6 @@ $translationModeMessage = "Change translation mode\nHere you can customize when 
     "Linked channel — translates only posts from linked channel that require it.\n" .
     "Manual — translates only by replying to a message with @TopTestGbot ! \n\n" .
     "THIS PART IS NOT DONE YET !";
-
 $translationModeKeyboard = new InlineKeyboardMarkup([
     [['text' => 'Auto', 'callback_data' => 'mode_auto']],
     [['text' => 'Only forwards', 'callback_data' => 'mode_forwards']],
@@ -48,7 +47,8 @@ $translationModeKeyboard = new InlineKeyboardMarkup([
 ]);
 
 // Logging function to log bot usage
-function logUsage($username, $chatId, $language, $action) {
+function logUsage($username, $chatId, $language, $action)
+{
     $logData = [
         'username' => $username,
         'chat_id' => $chatId,
@@ -61,7 +61,9 @@ function logUsage($username, $chatId, $language, $action) {
     $logs[] = $logData;
     file_put_contents($logFile, json_encode($logs));
 }
-function getPageKeyboard($page) {
+
+function getPageKeyboard($page)
+{
     global $languages, $itemsPerPage;
     $start = $page * $itemsPerPage;
     $end = min($start + $itemsPerPage, count($languages));
@@ -89,7 +91,6 @@ function getPageKeyboard($page) {
 
     return new InlineKeyboardMarkup($buttons);
 }
-
 $data = file_get_contents("php://input");
 $update = json_decode($data, true);
 
@@ -116,11 +117,12 @@ if (isset($update['message'])) {
             $bot->sendMessage($chatId, "Done!", null, false, $update['message']['message_id']);
         }
     }
-    
+
     // Log the text message action
     logUsage($username, $chatId, null, $text);
-       // Adding admin functionality to add and remove
-       if (preg_match('/^\/admin @(\w+)$/', $text, $matches)) {
+
+    // Admin management
+    if (preg_match('/^\/admin @(\w+)$/', $text, $matches)) {
         if (in_array("@$username", $superAdmins)) {
             $newAdmin = '@' . $matches[1];
             if (!in_array($newAdmin, $adminList)) {
@@ -179,11 +181,11 @@ if (isset($update['callback_query'])) {
         $applyKeyboard = new InlineKeyboardMarkup([
             [
                 [
-                    'text' => '✅ Apply', 
+                    'text' => '✅ Apply',
                     'switch_inline_query' => "set:language=$language"
                 ],
                 [
-                    'text' => '❌ Cancel', 
+                    'text' => '❌ Cancel',
                     'callback_data' => 'cancel'
                 ]
             ]
@@ -195,29 +197,34 @@ if (isset($update['callback_query'])) {
         $bot->sendMessage($callbackChatId, $settingsMessage, null, false, null, $settingsKeyboard);
     } elseif ($callbackData === 'back') {
         $bot->sendMessage($callbackChatId, $settingsMessage, null, false, null, $settingsKeyboard);
+    } elseif ($callbackData === 'apply') {
+        $bot->editMessageText($callbackChatId, $callbackMessageId, "Done!");
+    } elseif ($callbackData === 'cancel') {
+        $bot->sendMessage($callbackChatId, $settingsMessage, null, false, null, $settingsKeyboard);
+    } elseif ($callbackData === 'back') {
+        $bot->sendMessage($callbackChatId, $settingsMessage, null, false, null, $settingsKeyboard);
+    } elseif ($callbackData === 'mode_auto') {
+        $bot->sendMessage($callbackChatId, "Auto translation mode has been selected.");
+    } elseif ($callbackData === 'mode_forwards') {
+        $bot->sendMessage($callbackChatId, "Forward-only translation mode has been selected.");
+    } elseif ($callbackData === 'mode_linked') {
+        $bot->sendMessage($callbackChatId, "Linked channel translation mode has been selected.");
+    } elseif ($callbackData === 'mode_manual') {
+        $bot->sendMessage($callbackChatId, "Manual translation mode has been selected.");
     }
-elseif ($callbackData === 'apply') {
-    $bot->editMessageText($callbackChatId, $callbackMessageId, "Done!");
-} elseif ($callbackData === 'cancel') {
-    $bot->sendMessage($callbackChatId, $settingsMessage, null, false, null, $settingsKeyboard);
-} elseif ($callbackData === 'back') {
-    $bot->sendMessage($callbackChatId, $settingsMessage, null, false, null, $settingsKeyboard);
-} elseif ($callbackData === 'mode_auto') {
-    $bot->sendMessage($callbackChatId, "Auto translation mode has been selected.");
-} elseif ($callbackData === 'mode_forwards') {
-    $bot->sendMessage($callbackChatId, "Forward-only translation mode has been selected.");
-} elseif ($callbackData === 'mode_linked') {
-    $bot->sendMessage($callbackChatId, "Linked channel translation mode has been selected.");
-} elseif ($callbackData === 'mode_manual') {
-    $bot->sendMessage($callbackChatId, "Manual translation mode has been selected.");
 }
+
+function applyFormatting($text)
+{
+    // Placeholder for formatting logic
+    return $text; // Return the text as is, or add your formatting logic here
 }
 
 // New Logic for Forward-Only Translation Mode
 if (isset($update['message']['forward_from'])) {
     // This message is forwarded
     $forwardedText = $update['message']['text'];
-    
+
     // TODO: Add translation logic here using your translation API keys
     // For now, let's just simulate the translation with a placeholder
     $translatedText = "Translated: " . $forwardedText; // Placeholder for translation logic
@@ -230,12 +237,24 @@ if (isset($update['message']['forward_from'])) {
     $bot->sendMessage($chatId, $formattedText);
 }
 
+function translate($text, $targetLanguage)
+{
+    // TODO: Implement actual translation logic using a translation API
+    // For example, you could use Google Translate API, DeepL API, or any other service
+    // This is just a placeholder implementation
+
+    // Example placeholder response
+    return "Translated: " . $text;
+}
+
+
 // Function to detect and preserve formatting (bold, italic, underline, etc.) and translate
-function detectAndTranslateFormattedText($text, $targetLanguage) {
+function detectAndTranslateFormattedText($text, $targetLanguage)
+{
     // Use regular expressions to detect and split the text with formatting
     $formattedText = preg_replace_callback(
         '/(\*\*|__|~~|`|https:\/\/[^\s]+|\[[^\]]+\]\([^\)]+\))|([^\*\_\~\`\[]+)/',
-        function($matches) use ($targetLanguage) {
+        function ($matches) use ($targetLanguage) {
             if (isset($matches[1])) {
                 // Handle formatted text or links
                 if (preg_match('/\*\*(.*?)\*\*/', $matches[1])) {
@@ -267,7 +286,8 @@ function detectAndTranslateFormattedText($text, $targetLanguage) {
 }
 
 // Log user actions for super admin
-function logUserAction($username, $chatId, $groupId, $languageUsed, $originalText, $translatedText) {
+function logUserAction($username, $chatId, $groupId, $languageUsed, $originalText, $translatedText)
+{
     $logData = [
         'username' => $username,
         'chat_id' => $chatId,
@@ -277,7 +297,7 @@ function logUserAction($username, $chatId, $groupId, $languageUsed, $originalTex
         'translated_text' => $translatedText,
         'timestamp' => date('Y-m-d H:i:s')
     ];
-    
+
     // Save the log entry in JSON format
     file_put_contents('user_actions_log.json', json_encode($logData) . PHP_EOL, FILE_APPEND);
 }
@@ -285,7 +305,7 @@ function logUserAction($username, $chatId, $groupId, $languageUsed, $originalTex
 if (isset($update['message']['forward_from'])) {
     // This message is forwarded
     $forwardedText = $update['message']['text'];
-    
+
     // TODO: Add target language logic here; using a placeholder for now
     $targetLanguage = 'en'; // Placeholder for target language
 
@@ -298,5 +318,3 @@ if (isset($update['message']['forward_from'])) {
     // Send the formatted message back to the user
     $bot->sendMessage($chatId, $translatedText);
 }
-?>
-
