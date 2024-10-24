@@ -9,7 +9,7 @@ require_once __DIR__ . '/vendor/autoload.php';
 use TelegramBot\Api\BotApi;
 use TelegramBot\Api\Types\Inline\InlineKeyboardMarkup;
 
-$token = '7730300604:AAEmiRXjrdIP3g_Z1TqUu1nY4HtDvJETaLA';
+$token = '7869277159:AAGRmc517KH-yKfCONui2KpNr6rQMMsyGUA';
 $bot = new BotApi($token);
 $port = getenv('PORT') ?: 80;
 
