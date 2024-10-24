@@ -59,8 +59,9 @@ function logUsage($username, $chatId, $language, $action)
     $logFile = 'logs.json';
     $logs = json_decode(file_get_contents($logFile), true) ?? [];
     $logs[] = $logData;
-    file_put_contents($logFile, json_encode($logs));
+    file_put_contents($logFile, json_encode($logs, JSON_PRETTY_PRINT)); // Make log entries more readable
 }
+
 
 function getPageKeyboard($page)
 {
@@ -141,7 +142,7 @@ if (isset($update['message'])) {
             if (($key = array_search($adminToRemove, $adminList)) !== false) {
                 unset($adminList[$key]);
                 $adminList = array_values($adminList); // Reindex array
-                file_put_contents('admins.json', json_encode($adminList)); // Save updated admin list
+                file_put_contents('admins.json', json_encode($adminList, JSON_PRETTY_PRINT)); // Save updated admin list
                 $bot->sendMessage($chatId, "$adminToRemove has been removed from the admin list.");
             } else {
                 $bot->sendMessage($chatId, "$adminToRemove is not in the admin list.");
